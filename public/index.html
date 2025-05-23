@@ -3,15 +3,105 @@
   <head>
     <meta charset="UTF-8" />
     <title>Receptsamling</title>
+    <style>
+      body {
+        font-family: "Segoe UI", sans-serif;
+        background-color: #f9f9f9;
+        margin: 0;
+        padding: 2rem;
+      }
+
+      h1,
+      h2 {
+        color: #333;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        background-color: white;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      th,
+      td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+
+      th {
+        background-color: #f0f0f0;
+      }
+
+      tr:hover {
+        background-color: #f9f9f9;
+      }
+
+      td[contenteditable="true"] {
+        outline: none;
+        transition: background-color 0.3s;
+      }
+
+      td[contenteditable="true"]:focus {
+        background-color: #e0f7fa;
+      }
+
+      button {
+        padding: 0.4rem 0.8rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+
+      button:hover {
+        opacity: 0.9;
+      }
+
+      button[onclick*="updateDish"] {
+        background-color: #4caf50;
+        color: white;
+      }
+
+      button[onclick*="deleteDish"] {
+        background-color: #f44336;
+        color: white;
+      }
+
+      form {
+        margin-top: 2rem;
+        background-color: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      form input {
+        flex: 1 1 200px;
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      form button {
+        background-color: #2196f3;
+        color: white;
+      }
+    </style>
   </head>
   <body>
     <h1>Alla recept</h1>
 
-    <!-- Tabell där recepten visas -->
-    <table border="1" id="dishTable"></table>
+    <table id="dishTable"></table>
 
     <h2>Lägg till nytt recept</h2>
-    <!-- Formulär för att lägga till nytt recept -->
     <form id="dishForm">
       <input placeholder="Namn" name="name" required />
       <input
@@ -30,30 +120,45 @@
       const table = document.getElementById("dishTable");
       const form = document.getElementById("dishForm");
 
-      // Funktion för att hämta och visa alla recept
       async function fetchDishes() {
         const res = await fetch("/api/dishes");
         const dishes = await res.json();
+
         table.innerHTML =
-          "<tr><th>Namn</th><th>Redigera</th><th>Ta bort</th></tr>" +
+          `
+          <tr>
+            <th>Namn</th>
+            <th>Ingredienser</th>
+            <th>Steg</th>
+            <th>Tid</th>
+            <th>Ursprung</th>
+            <th>Styrka</th>
+            <th>Redigera</th>
+            <th>Ta bort</th>
+          </tr>
+        ` +
           dishes
             .map(
               (d) => `
-    <tr>
-      <td contenteditable="true" id="name-${d._id}">${d.name}</td>
-      <td>
-        <button onclick="updateDish('${d._id}')">✏️</button>
-      </td>
-      <td>
-        <button onclick="deleteDish('${d._id}')">🗑</button>
-      </td>
-    </tr>
-  `
+          <tr>
+            <td contenteditable="true" id="name-${d._id}">${d.name}</td>
+            <td contenteditable="true" id="ingredients-${
+              d._id
+            }">${d.ingredients.join(", ")}</td>
+            <td contenteditable="true" id="steps-${d._id}">${
+                d.preparationSteps
+              }</td>
+            <td contenteditable="true" id="time-${d._id}">${d.cookingTime}</td>
+            <td contenteditable="true" id="origin-${d._id}">${d.origin}</td>
+            <td contenteditable="true" id="spice-${d._id}">${d.spiceLevel}</td>
+            <td><button onclick="updateDish('${d._id}')">✏️</button></td>
+            <td><button onclick="deleteDish('${d._id}')">🗑</button></td>
+          </tr>
+        `
             )
             .join("");
       }
 
-      // När formuläret skickas in – lägg till nytt recept
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         const data = Object.fromEntries(new FormData(form).entries());
@@ -64,10 +169,9 @@
           body: JSON.stringify(data),
         });
         form.reset();
-        fetchDishes(); // Ladda om listan
+        fetchDishes();
       });
 
-      // Ta bort ett recept med DELETE
       async function deleteDish(id) {
         if (confirm("Är du säker?")) {
           await fetch(`/api/dishes/${id}`, { method: "DELETE" });
@@ -76,14 +180,22 @@
       }
 
       async function updateDish(id) {
-        console.log("Uppdaterar id:", id);
-        const nameCell = document.getElementById(`name-${id}`);
-        const updatedName = nameCell.innerText;
+        const updatedDish = {
+          name: document.getElementById(`name-${id}`).innerText,
+          ingredients: document
+            .getElementById(`ingredients-${id}`)
+            .innerText.split(",")
+            .map((i) => i.trim()),
+          preparationSteps: document.getElementById(`steps-${id}`).innerText,
+          cookingTime: document.getElementById(`time-${id}`).innerText,
+          origin: document.getElementById(`origin-${id}`).innerText,
+          spiceLevel: document.getElementById(`spice-${id}`).innerText,
+        };
 
         const res = await fetch(`/api/dishes/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name: updatedName }),
+          body: JSON.stringify(updatedDish),
         });
 
         if (res.ok) {
@@ -94,7 +206,6 @@
         }
       }
 
-      // Kör när sidan laddas
       fetchDishes();
     </script>
   </body>
