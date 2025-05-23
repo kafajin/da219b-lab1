@@ -37,4 +37,18 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// PUT /api/dishes/:id – uppdaterar en rätt med nytt innehåll
+router.put("/:id", async (req, res) => {
+  console.log("PUT begäran mottagen för id:", req.params.id);
+  try {
+    const updated = await Dish.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    if (!updated) return res.status(404).send("Receptet hittades inte");
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
+
 module.exports = router;

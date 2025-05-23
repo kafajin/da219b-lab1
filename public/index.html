@@ -35,17 +35,20 @@
         const res = await fetch("/api/dishes");
         const dishes = await res.json();
         table.innerHTML =
-          "<tr><th>Namn</th><th>Ta bort</th></tr>" +
+          "<tr><th>Namn</th><th>Redigera</th><th>Ta bort</th></tr>" +
           dishes
             .map(
               (d) => `
-          <tr>
-            <td>${d.name}</td>
-            <td>
-              <button onclick="deleteDish('${d._id}')">🗑</button>
-            </td>
-          </tr>
-        `
+    <tr>
+      <td contenteditable="true" id="name-${d._id}">${d.name}</td>
+      <td>
+        <button onclick="updateDish('${d._id}')">✏️</button>
+      </td>
+      <td>
+        <button onclick="deleteDish('${d._id}')">🗑</button>
+      </td>
+    </tr>
+  `
             )
             .join("");
       }
@@ -69,6 +72,25 @@
         if (confirm("Är du säker?")) {
           await fetch(`/api/dishes/${id}`, { method: "DELETE" });
           fetchDishes();
+        }
+      }
+
+      async function updateDish(id) {
+        console.log("Uppdaterar id:", id);
+        const nameCell = document.getElementById(`name-${id}`);
+        const updatedName = nameCell.innerText;
+
+        const res = await fetch(`/api/dishes/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: updatedName }),
+        });
+
+        if (res.ok) {
+          alert("Recept uppdaterat!");
+          fetchDishes();
+        } else {
+          alert("Kunde inte uppdatera receptet.");
         }
       }
 
