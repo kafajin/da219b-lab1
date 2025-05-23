@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Receptsamling</title>
+  </head>
+  <body>
+    <h1>Alla recept</h1>
+
+    <!-- Tabell där recepten visas -->
+    <table border="1" id="dishTable"></table>
+
+    <h2>Lägg till nytt recept</h2>
+    <!-- Formulär för att lägga till nytt recept -->
+    <form id="dishForm">
+      <input placeholder="Namn" name="name" required />
+      <input
+        placeholder="Ingredienser (kommaseparerat)"
+        name="ingredients"
+        required
+      />
+      <input placeholder="Tillagning" name="preparationSteps" required />
+      <input placeholder="Tid" name="cookingTime" required />
+      <input placeholder="Ursprung" name="origin" required />
+      <input placeholder="Styrka" name="spiceLevel" />
+      <button type="submit">Lägg till</button>
+    </form>
+
+    <script>
+      const table = document.getElementById("dishTable");
+      const form = document.getElementById("dishForm");
+
+      // Funktion för att hämta och visa alla recept
+      async function fetchDishes() {
+        const res = await fetch("/api/dishes");
+        const dishes = await res.json();
+        table.innerHTML =
+          "<tr><th>Namn</th><th>Ta bort</th></tr>" +
+          dishes
+            .map(
+              (d) => `
+          <tr>
+            <td>${d.name}</td>
+            <td>
+              <button onclick="deleteDish('${d._id}')">🗑</button>
+            </td>
+          </tr>
+        `
+            )
+            .join("");
+      }
+
+      // När formuläret skickas in – lägg till nytt recept
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(form).entries());
+        data.ingredients = data.ingredients.split(",").map((i) => i.trim());
+        await fetch("/api/dishes", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        });
+        form.reset();
+        fetchDishes(); // Ladda om listan
+      });
+
+      // Ta bort ett recept med DELETE
+      async function deleteDish(id) {
+        if (confirm("Är du säker?")) {
+          await fetch(`/api/dishes/${id}`, { method: "DELETE" });
+          fetchDishes();
+        }
+      }
+
+      // Kör när sidan laddas
+      fetchDishes();
+    </script>
+  </body>
+</html>
